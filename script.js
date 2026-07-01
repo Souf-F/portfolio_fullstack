@@ -280,15 +280,37 @@ function hideWords(section)   { resetBlur(section); }
   const COOLDOWN  = DURATION + 300; // ignore wheel for this long after each transition
 
   window.addEventListener('wheel', e => {
+
     e.preventDefault();
+
+    /* Scroller manuellement un élément interne si le curseur est dessus */
+    const inner = e.target.closest('.about-left');
+    if (inner && inner.scrollHeight > inner.clientHeight) {
+      const atTop    = inner.scrollTop <= 0;
+      const atBottom = inner.scrollTop + inner.clientHeight >= inner.scrollHeight - 2;
+      if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) {
+        inner.scrollTop += e.deltaY;
+        wheelAcc = 0; // reset pour éviter que la section change dès qu'on atteint la limite
+        return;
+      }
+      // On vient de toucher la limite — reset pour forcer un nouvel effort de scroll
+      wheelAcc = 0;
+    }
+
+    /* Déléguer au carousel si section projects active + scroll horizontal */
+    const projActive = sections[currentIdx] && sections[currentIdx].id === 'projects';
+    if (projActive && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      if (window._carouselWheel) window._carouselWheel(e.deltaX);
+      return;
+    }
 
     /* Block during cooldown */
     if (Date.now() - lastGoTime < COOLDOWN) return;
 
     /* Normalize deltaY across deltaMode */
     let delta = e.deltaY;
-    if (e.deltaMode === 1) delta *= 32;   // lines → px
-    if (e.deltaMode === 2) delta *= 800;  // pages → px
+    if (e.deltaMode === 1) delta *= 32;
+    if (e.deltaMode === 2) delta *= 800;
 
     wheelAcc += delta;
     clearTimeout(wheelTimer);
@@ -303,15 +325,27 @@ function hideWords(section)   { resetBlur(section); }
   }, { passive: false });
 
   /* ---- Touch ---- */
-  let touchY = 0;
-  window.addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, { passive: true });
+  let touchY = 0, touchX = 0;
+  window.addEventListener('touchstart', e => {
+    touchY = e.touches[0].clientY;
+    touchX = e.touches[0].clientX;
+  }, { passive: true });
   window.addEventListener('touchend', e => {
     const dy = touchY - e.changedTouches[0].clientY;
+    const dx = touchX - e.changedTouches[0].clientX;
+    const projActive = sections[currentIdx] && sections[currentIdx].id === 'projects';
+    if (projActive && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (window._carouselSwipe) window._carouselSwipe(dx > 0 ? 1 : -1);
+      return;
+    }
     if (Math.abs(dy) > 70) goTo(currentIdx + (dy > 0 ? 1 : -1));
   }, { passive: true });
 
   /* ---- Keyboard ---- */
   window.addEventListener('keydown', e => {
+    const projActive = sections[currentIdx] && sections[currentIdx].id === 'projects';
+    if (projActive && e.key === 'ArrowRight') { e.preventDefault(); if (window._carouselSwipe) window._carouselSwipe(1);  return; }
+    if (projActive && e.key === 'ArrowLeft')  { e.preventDefault(); if (window._carouselSwipe) window._carouselSwipe(-1); return; }
     if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); goTo(currentIdx + 1); }
     if (e.key === 'ArrowUp'   || e.key === 'PageUp'  ) { e.preventDefault(); goTo(currentIdx - 1); }
   });
@@ -358,108 +392,114 @@ cycleRoles();
 /* ============================================
    Projects — draggable auto-scroll belt
    ============================================ */
-(function initProjBelt() {
-  const belt    = document.getElementById('proj-belt');
-  const section = document.getElementById('projects');
-  if (!belt || !section) return;
+/* ============================================
+   Projects — carousel
+   ============================================ */
+(function initProjCarousel() {
+  const track    = document.getElementById('ps-track');
+  const viewport = document.getElementById('ps-viewport');
+  const prevBtn  = document.getElementById('ps-prev');
+  const nextBtn  = document.getElementById('ps-next');
+  const dotsEl   = document.getElementById('ps-dots');
+  const counter  = document.getElementById('ps-counter');
+  const section  = document.getElementById('projects');
+  if (!track || !viewport) return;
 
-  let x           = 0;
-  const SPEED     = 1.5;
-  let isDragging  = false;
-  let isHovered   = false;
-  let dragStartX  = 0;
-  let dragBase    = 0;
-  let rafId       = null;
-  let halfWidth   = 0;
+  const cards  = Array.from(track.querySelectorAll('.proj-card'));
+  const total  = cards.length;
+  let   idx    = 0;
+  const GAP    = 24;
 
-  function wrap() {
-    if (!halfWidth) return;
-    if (x <= -halfWidth) x += halfWidth;
-    if (x > 0)           x -= halfWidth;
+  /* ── Dots ── */
+  const dots = cards.map((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'ps-dot';
+    d.setAttribute('aria-label', `Projet ${i + 1}`);
+    d.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(d);
+    return d;
+  });
+
+  /* ── Calcul offset centré ── */
+  function offset(i) {
+    const vpW   = viewport.offsetWidth;
+    const cardW = cards[0].offsetWidth;
+    return (vpW / 2) - (cardW / 2) - i * (cardW + GAP);
   }
 
-  const projPanel = document.getElementById('proj-panel');
+  /* ── Aller à l'index i ── */
+  function goTo(i) {
+    idx = Math.max(0, Math.min(total - 1, i));
+    track.style.transform = `translateX(${offset(idx)}px)`;
 
-  function tick() {
-    const panelOpen = projPanel && projPanel.classList.contains('pp-visible');
-    if (!isDragging && !isHovered && !panelOpen) {
-      x -= SPEED;
-      wrap();
+    cards.forEach((c, k) => {
+      c.classList.toggle('ps-active',   k === idx);
+      c.classList.toggle('ps-inactive', k !== idx);
+    });
+
+    dots.forEach((d, k) => d.classList.toggle('active', k === idx));
+    counter.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+    if (prevBtn) prevBtn.disabled = idx === 0;
+    if (nextBtn) nextBtn.disabled = idx === total - 1;
+  }
+
+  /* ── Init ── */
+  function init() {
+    goTo(0);
+  }
+
+  /* ── Boutons ── */
+  prevBtn && prevBtn.addEventListener('click', () => goTo(idx - 1));
+  nextBtn && nextBtn.addEventListener('click', () => goTo(idx + 1));
+
+  /* ── Wheel horizontal (exposé globalement) ── */
+  let wheelAcc = 0, wTimer = null;
+  window._carouselWheel = function(deltaX) {
+    wheelAcc += deltaX;
+    clearTimeout(wTimer);
+    wTimer = setTimeout(() => { wheelAcc = 0; }, 500);
+    if (Math.abs(wheelAcc) > 120) {
+      goTo(idx + (wheelAcc > 0 ? 1 : -1));
+      wheelAcc = 0;
     }
-    belt.style.transform = `translateX(${x}px)`;
-    rafId = requestAnimationFrame(tick);
-  }
+  };
 
-  /* Pause belt on any card hover */
-  belt.addEventListener('mouseenter', () => { isHovered = true; });
-  belt.addEventListener('mouseleave', () => { if (!isDragging) isHovered = false; });
+  /* ── Swipe touch / flèches clavier (exposé globalement) ── */
+  window._carouselSwipe = function(dir) { goTo(idx + dir); };
 
-  /* Mouse drag */
-  belt.addEventListener('mousedown', e => {
-    if (e.button !== 0) return;
-    isDragging = true;
-    isHovered  = true;
-    dragStartX = e.clientX;
-    dragBase   = x;
-    belt.classList.add('is-dragging');
+  /* ── Drag souris ── */
+  let dragging = false, dragStartX = 0, dragBaseIdx = 0;
+  track.addEventListener('mousedown', e => {
+    dragging = true; dragStartX = e.clientX; dragBaseIdx = idx;
+    track.style.transition = 'none';
     e.preventDefault();
   });
-
   window.addEventListener('mousemove', e => {
-    if (!isDragging) return;
-    x = dragBase + (e.clientX - dragStartX);
-    wrap();
+    if (!dragging) return;
+    const dx = e.clientX - dragStartX;
+    const cardW = cards[0].offsetWidth;
+    track.style.transform = `translateX(${offset(dragBaseIdx) + dx}px)`;
+  });
+  window.addEventListener('mouseup', e => {
+    if (!dragging) return;
+    dragging = false;
+    track.style.transition = '';
+    const dx = e.clientX - dragStartX;
+    if      (dx < -60) goTo(dragBaseIdx + 1);
+    else if (dx >  60) goTo(dragBaseIdx - 1);
+    else               goTo(dragBaseIdx);
   });
 
-  window.addEventListener('mouseup', () => {
-    if (!isDragging) return;
-    isDragging = false;
-    isHovered  = false;
-    belt.classList.remove('is-dragging');
-  });
-
-  /* Touch drag */
-  belt.addEventListener('touchstart', e => {
-    isHovered  = true;
-    dragStartX = e.touches[0].clientX;
-    dragBase   = x;
-  }, { passive: true });
-
-  belt.addEventListener('touchmove', e => {
-    x = dragBase + (e.touches[0].clientX - dragStartX);
-    wrap();
-  }, { passive: true });
-
-  belt.addEventListener('touchend', () => { isHovered = false; });
-
-  /* Flèches gauche / droite */
-  const CARD_STEP = 302; // largeur carte + gap
-  let arrowTimer = null;
-
-  function arrowScroll(dir) {
-    x += dir * CARD_STEP;
-    wrap();
-    isHovered = true;
-    clearTimeout(arrowTimer);
-    arrowTimer = setTimeout(() => { isHovered = false; }, 1200);
-  }
-
-  document.getElementById('proj-prev')?.addEventListener('click', () => arrowScroll(1));
-  document.getElementById('proj-next')?.addEventListener('click', () => arrowScroll(-1));
-
-  /* Start when section activates — compute halfWidth via first duplicate card */
+  /* ── Lancer quand section devient active ── */
   new MutationObserver(() => {
     if (section.classList.contains('is-active')) {
-      requestAnimationFrame(() => {
-        const firstDup = belt.querySelector('[aria-hidden="true"]');
-        halfWidth = firstDup ? firstDup.offsetLeft : belt.scrollWidth / 2;
-        if (!rafId) tick();
-      });
-    } else {
-      cancelAnimationFrame(rafId);
-      rafId = null;
+      requestAnimationFrame(() => init());
     }
   }).observe(section, { attributeFilter: ['class'] });
+
+  window.addEventListener('resize', () => {
+    if (section.classList.contains('is-active')) goTo(idx);
+  });
 })();
 
 /* ============================================
@@ -620,95 +660,6 @@ cycleRoles();
 })();
 
 /* ============================================
-   Projects — floating panel on card hover
-   ============================================ */
-(function initProjPanel() {
-  const panel   = document.getElementById('proj-panel');
-  const section = document.getElementById('projects');
-  const belt    = document.getElementById('proj-belt');
-  if (!panel || !belt) return;
-
-  const ppPreview = panel.querySelector('.pp-preview');
-  const ppMeta    = panel.querySelector('.pp-meta');
-  const ppTitle   = panel.querySelector('.pp-title');
-  const ppDesc    = panel.querySelector('.pp-desc');
-  const ppTags    = panel.querySelector('.pp-tags');
-  const ppLinks   = panel.querySelector('.pp-links');
-
-  let hideTimer = null;
-
-  function showPanel(card) {
-    clearTimeout(hideTimer);
-
-    /* ── Populate ── */
-    const isSoon = card.classList.contains('bento-card--soon');
-
-    /* Preview */
-    const previewSrc = card.querySelector('.bc-preview');
-    ppPreview.className = 'pp-preview' + (isSoon ? ' pp-preview--soon' : '');
-    ppPreview.innerHTML = previewSrc ? previewSrc.innerHTML : '';
-
-    /* Meta (status badge) */
-    const badge = card.querySelector('.status-badge');
-    ppMeta.innerHTML = badge ? badge.outerHTML : '';
-
-    /* Title */
-    ppTitle.textContent = isSoon ? 'Bientôt' : (card.querySelector('.bc-title')?.textContent || '');
-
-    /* Description */
-    const descEl = card.querySelector('.bc-hover p');
-    ppDesc.textContent = descEl ? descEl.textContent : (isSoon ? 'Arrive bientôt — reviens vite.' : '');
-
-    /* Tags */
-    const tagsEl = card.querySelector('.project-tags');
-    ppTags.innerHTML = tagsEl ? tagsEl.outerHTML : '';
-
-    /* Links */
-    const linkEl = card.querySelector('.project-link');
-    ppLinks.innerHTML = linkEl
-      ? `<a href="${linkEl.href}" target="_blank" rel="noopener" class="project-link">${linkEl.innerHTML}</a>`
-      : '';
-
-    /* ── Position (centered on card, clamped to viewport) ── */
-    const r  = card.getBoundingClientRect();
-    const PW = Math.min(680, window.innerWidth * 0.88), PH = 620;
-    const cx = r.left + r.width  / 2;
-    const cy = r.top  + r.height / 2;
-    let left = cx - PW / 2;
-    let top  = cy - PH / 2;
-    left = Math.max(12, Math.min(window.innerWidth  - PW - 12, left));
-    top  = Math.max(72, Math.min(window.innerHeight - PH - 12, top));
-
-    /* transform-origin points at card center so it "grows from the card" */
-    panel.style.left            = left + 'px';
-    panel.style.top             = top  + 'px';
-    panel.style.transformOrigin = `${cx - left}px ${cy - top}px`;
-
-    panel.setAttribute('aria-hidden', 'false');
-    panel.classList.add('pp-visible');
-    if (section) section.classList.add('card-focused');
-  }
-
-  function hidePanel() {
-    hideTimer = setTimeout(() => {
-      panel.classList.remove('pp-visible');
-      panel.setAttribute('aria-hidden', 'true');
-      if (section) section.classList.remove('card-focused');
-    }, 100);
-  }
-
-  belt.querySelectorAll('.bento-card').forEach(card => {
-    card.addEventListener('mouseenter', () => showPanel(card));
-    card.addEventListener('mouseleave', e => {
-      if (!e.relatedTarget || !panel.contains(e.relatedTarget)) hidePanel();
-    });
-  });
-
-  panel.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-  panel.addEventListener('mouseleave', hidePanel);
-})();
-
-/* ============================================
    Stack — Vanta clouds background
    ============================================ */
 (function initVantaClouds() {
@@ -761,7 +712,7 @@ cycleRoles();
   section.appendChild(wrap);
 
   const ctx   = canvas.getContext('2d');
-  const COUNT = 340;
+  const COUNT = 160;
   let W, H, pts, rafId;
 
   function resize() {
@@ -1161,39 +1112,60 @@ cycleRoles();
 })();
 
 /* ============================================
-   Contact — form submission via Formspree
+   Contact — form submission via Web3Forms
    ============================================ */
 (function initContactForm() {
-  const form   = document.getElementById('contact-form');
-  const status = document.getElementById('cf-status');
+  const form      = document.getElementById('contact-form');
+  const status    = document.getElementById('cf-status');
   if (!form || !status) return;
+
+  const LOAD_TIME    = Date.now();
+  const RATE_KEY     = '_cf_last';
+  const MIN_DELAY_MS = 4000;   // moins de 4s = bot
+  const RATE_LIMIT   = 60000;  // 1 envoi max par minute
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const btn = form.querySelector('.cf-submit');
+
+    // Protection timing : un humain met au moins 4 secondes à remplir le formulaire
+    if (Date.now() - LOAD_TIME < MIN_DELAY_MS) {
+      form.reset();
+      status.className = 'cf-status ok';
+      status.textContent = 'Message envoyé — merci !';
+      return;
+    }
+
+    // Rate limiting : 1 envoi par minute max
+    const lastSend = parseInt(localStorage.getItem(RATE_KEY) || '0', 10);
+    if (Date.now() - lastSend < RATE_LIMIT) {
+      status.className = 'cf-status err';
+      status.textContent = 'Merci d\'attendre avant d\'envoyer un autre message.';
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = 'Envoi…';
     status.className = 'cf-status';
     status.textContent = '';
 
-    const data = new FormData(form);
-
     try {
-      const res = await fetch('https://formspree.io/f/xpwzgpno', {
+      const res  = await fetch('https://api.web3forms.com/submit', {
         method : 'POST',
-        body   : data,
+        body   : new FormData(form),
         headers: { Accept: 'application/json' },
       });
+      const json = await res.json();
 
-      if (res.ok) {
+      if (json.success) {
+        localStorage.setItem(RATE_KEY, String(Date.now()));
         status.className = 'cf-status ok';
         status.textContent = 'Message envoyé — merci !';
         form.reset();
       } else {
-        const json = await res.json();
-        throw new Error(json?.errors?.[0]?.message || 'Erreur serveur');
+        throw new Error(json.message || 'Erreur serveur');
       }
-    } catch (err) {
+    } catch {
       status.className = 'cf-status err';
       status.textContent = 'Échec de l\'envoi, réessaie.';
     } finally {

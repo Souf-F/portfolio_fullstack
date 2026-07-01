@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- ── Sécurité ── -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://unpkg.com; media-src 'self'; connect-src 'self' https://formspree.io; object-src 'none'; base-uri 'self'; form-action https://formspree.io 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://unpkg.com; media-src 'self'; connect-src 'self' https://api.web3forms.com; object-src 'none'; base-uri 'self'; form-action https://api.web3forms.com 'self'; upgrade-insecure-requests;">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 
 <title>Soufiane Filali — Développeur Full Stack</title>
@@ -25,12 +25,18 @@
       integrity="sha384-DjehTlU5SubGD1zUGe78SkwLgw+q2y9DXnmy3EaDbXA9nvFMPW3LP5verNrWr9rW"
       crossorigin="anonymous">
 <link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 </head>
 <body>
 
 <nav id="navbar">
   <div class="nav-inner">
-    <a href="#home" class="logo">&lt;SF<span class="accent">/</span>&gt;</a>
+    <a href="#home" class="logo" aria-label="Accueil">
+      <svg class="logo-mark" viewBox="0 0 30 30" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="30" height="30" rx="7" fill="#3b82f6"/>
+        <text x="15" y="21" font-family="Space Grotesk, Helvetica Neue, sans-serif" font-size="13" font-weight="700" fill="white" text-anchor="middle" letter-spacing="-0.3">SF</text>
+      </svg>
+    </a>
     <ul class="nav-links" id="navLinks">
       <li><a href="#about">Profil</a></li>
       <li><a href="#stack">Stack</a></li>
@@ -124,7 +130,7 @@
         <!-- Colonne droite : globe cyber -->
         <div class="globe-wrap">
           <div class="globe-hud">
-            <span class="globe-hud-title">Cyber attaques — temps réel simulé</span>
+            <span class="globe-hud-title">Cyber attaques simulées</span>
             <span class="globe-attack-count"><span id="globe-count">0</span> attaques</span>
           </div>
           <div class="globe-top10" id="globe-top10">
@@ -223,35 +229,81 @@
 
   <!-- PROJETS -->
   <section id="projects" class="section">
-    <canvas id="proj-canvas"></canvas>
-    <div class="proj-header">
-      <h3 class="section-title"><span class="tag">// 03</span> Projets</h3>
-    </div>
+    <div class="proj-content">
 
-    <button class="proj-arrow proj-arrow--left"  id="proj-prev" aria-label="Précédent">&#8592;</button>
-    <button class="proj-arrow proj-arrow--right" id="proj-next" aria-label="Suivant">&#8594;</button>
-
-    <div class="proj-stage">
-      <div class="proj-belt" id="proj-belt">
-
-        <article class="bento-card bento-card--soon"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-        <article class="bento-card bento-card--soon"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-        <article class="bento-card bento-card--soon"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-        <article class="bento-card bento-card--soon"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-
-        <!-- duplicates -->
-        <article class="bento-card bento-card--soon" aria-hidden="true"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-        <article class="bento-card bento-card--soon" aria-hidden="true"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-        <article class="bento-card bento-card--soon" aria-hidden="true"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-        <article class="bento-card bento-card--soon" aria-hidden="true"><span class="soon-ribbon">soon</span><p class="soon-bottom">arrive bientôt</p><div class="bc-hover"><p>Projet en cours — arrive bientôt.</p></div></article>
-
+      <div class="proj-header">
+        <h3 class="section-title"><span class="tag">// 03</span> Projets</h3>
+        <p class="proj-subtitle">Mes réalisations &amp; projets open source</p>
       </div>
+
+      <div class="proj-slider">
+        <button class="ps-arrow ps-arrow--prev" id="ps-prev" aria-label="Projet précédent">&#8592;</button>
+        <div class="ps-viewport" id="ps-viewport">
+          <div class="ps-track" id="ps-track">
+
+            <article class="proj-card" style="--pc-color:#3b82f6">
+              <div class="pc-preview">
+                <img src="assets/projects/cheatsheet.png" alt="Cyber Cheatsheet" loading="lazy" onerror="this.style.display='none'">
+              </div>
+              <div class="pc-top"><span class="pc-icon">🔐</span><span class="pc-category">Cybersécurité</span></div>
+              <div class="pc-body">
+                <h4 class="pc-title">Cyber Cheatsheet</h4>
+                <p class="pc-desc">Plateforme d'apprentissage cybersécurité avec progression XP, 54 fiches interactives et 43 badges débloquables. Entièrement vanilla JS.</p>
+                <div class="pc-tags"><span class="pc-tag">HTML</span><span class="pc-tag">CSS</span><span class="pc-tag">JavaScript</span></div>
+              </div>
+              <div class="pc-footer">
+                <a href="https://github.com/Souf-F" target="_blank" rel="noopener noreferrer" class="pc-link pc-link--gh"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg> GitHub</a>
+                <a href="https://cyber-cheatsheet.aeonlabs.fr/" target="_blank" rel="noopener noreferrer" class="pc-link pc-link--live">Voir le projet →</a>
+              </div>
+            </article>
+
+            <article class="proj-card" style="--pc-color:#10b981">
+              <div class="pc-preview">
+                <img src="assets/projects/aeris.png" alt="AERIS" loading="lazy" onerror="this.style.display='none'">
+              </div>
+              <div class="pc-top"><span class="pc-icon">✈️</span><span class="pc-category">Aéronautique &amp; Défense</span></div>
+              <div class="pc-body">
+                <h4 class="pc-title">AERIS</h4>
+                <p class="pc-desc">Outil de gestion des risques cyber pour la supply chain aéronautique &amp; défense. Scoring probabilité × impact, matrice 5×5, 9 actifs pré-chargés (Thales, Airbus D&amp;S, Safran…). Basé sur la méthodologie EBIOS Risk Manager (ANSSI).</p>
+                <div class="pc-tags"><span class="pc-tag">HTML</span><span class="pc-tag">CSS</span><span class="pc-tag">JavaScript</span><span class="pc-tag">EBIOS RM</span></div>
+              </div>
+              <div class="pc-footer">
+                <a href="https://github.com/Souf-F/aeris-risk-assessment" target="_blank" rel="noopener noreferrer" class="pc-link pc-link--gh"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg> GitHub</a>
+                <a href="https://aeris.aeonlabs.fr/" target="_blank" rel="noopener noreferrer" class="pc-link pc-link--live">Voir le projet →</a>
+              </div>
+            </article>
+
+            <article class="proj-card" style="--pc-color:#22c55e">
+              <div class="pc-preview">
+                <img src="assets/projects/ecoaudit.png" alt="ECO-AUDIT" loading="lazy" onerror="this.style.display='none'">
+              </div>
+              <div class="pc-top"><span class="pc-icon">🌿</span><span class="pc-category">Serious Game &amp; Conformité</span></div>
+              <div class="pc-body">
+                <h4 class="pc-title">ECO-AUDIT — Les Corrompus</h4>
+                <p class="pc-desc">Serious game d'enquête anti-corruption dans une entreprise fictive de traitement des déchets. Organigramme interactif, timer, dossiers confidentiels. Conçu avec une équipe de 9 étudiants en fin d'études.</p>
+                <div class="pc-tags"><span class="pc-tag">HTML</span><span class="pc-tag">CSS</span><span class="pc-tag">JavaScript</span><span class="pc-tag">Serious Game</span></div>
+              </div>
+              <div class="pc-footer">
+                <a href="https://github.com/Souf-F/ecoauditv3" target="_blank" rel="noopener noreferrer" class="pc-link pc-link--gh"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg> GitHub</a>
+                <a href="https://ecoaudit.aeonlabs.fr/" target="_blank" rel="noopener noreferrer" class="pc-link pc-link--live">Voir le projet →</a>
+              </div>
+            </article>
+
+          </div>
+        </div>
+        <button class="ps-arrow ps-arrow--next" id="ps-next" aria-label="Projet suivant">&#8594;</button>
+      </div>
+
+      <div class="ps-pagination">
+        <div class="ps-dots" id="ps-dots"></div>
+        <span class="ps-counter" id="ps-counter">01 / 03</span>
+      </div>
+
     </div>
   </section>
 
   <!-- CONTACT -->
   <section id="contact" class="section">
-    <canvas id="contact-canvas"></canvas>
 
     <h3 class="section-title contact-title"><span class="tag">// 04</span> Contact</h3>
 
@@ -271,7 +323,10 @@
               Une question, une offre d'alternance, ou simplement envie d'échanger ?
             </p>
             <form class="contact-form" id="contact-form"
-                  action="https://formspree.io/f/xpwzgpno" method="POST">
+                  action="https://api.web3forms.com/submit" method="POST">
+              <input type="hidden" name="access_key" value="58c39c33-d27a-43fe-8f17-84710bf49a76">
+              <input type="hidden" name="subject" value="Nouveau message — Portfolio Soufiane">
+              <input type="checkbox" name="botcheck" style="display:none">
               <div class="cf-row">
                 <div class="cf-field">
                   <label for="cf-name">Nom</label>
@@ -336,17 +391,6 @@
   </a>
 </footer>
 
-<!-- Panel projet — position: fixed, hors de tout transform -->
-<div id="proj-panel" aria-hidden="true">
-  <div class="pp-preview"></div>
-  <div class="pp-body">
-    <div class="pp-meta"></div>
-    <h3 class="pp-title"></h3>
-    <p class="pp-desc"></p>
-    <div class="pp-tags"></div>
-    <div class="pp-links"></div>
-  </div>
-</div>
 
 <!-- ── Libs tierces : chargées ici (non render-blocking) dans l'ordre de dépendance ── -->
 <script src="https://unpkg.com/globe.gl@2.27.2/dist/globe.gl.min.js"
